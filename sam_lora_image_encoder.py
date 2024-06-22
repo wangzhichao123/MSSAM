@@ -1,3 +1,5 @@
+# Thanks SAMed 
+# Code link : https://github.com/hitachinsk/SAMed
 from segment_anything import build_sam, SamPredictor
 from segment_anything import sam_model_registry
 
