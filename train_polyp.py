@@ -15,6 +15,7 @@ from importlib import import_module
 
 import matplotlib.pyplot as plt
 
+# The loss function based on the SAM is superior to the combination of Binary Cross-Entropy (BCE) and Dice loss.
 def structure_loss(pred, mask):
     weit = 1 + 5 * torch.abs(F.avg_pool2d(mask, kernel_size=31, stride=1, padding=15) - mask)
     wbce = F.binary_cross_entropy_with_logits(pred, mask, reduce='none')
@@ -24,7 +25,7 @@ def structure_loss(pred, mask):
     inter = ((pred * mask) * weit).sum(dim=(2, 3))
     union = ((pred + mask) * weit).sum(dim=(2, 3))
     wiou = 1 - (inter + 1) / (union - inter + 1)
-
+    
     return (wbce + wiou).mean()
 
 
@@ -99,7 +100,7 @@ def train(train_loader, model, optimizer, epoch, args):
         # ---- backward ----
         optimizer.zero_grad()
         loss.backward()
-        # clip_gradient(optimizer, args.clip)      # 梯度截断
+        # clip_gradient(optimizer, args.clip)      # 梯度截断(可有可无)
         optimizer.step()
         # ---- recording loss ----
         loss_P1_record.update(loss_P1.data, args.batchsize)
@@ -214,7 +215,6 @@ if __name__ == '__main__':
     low_res = img_embedding_size * 4  # 32 * 4 = 128  32 * 7 = 224 
     
     net = sam.cuda()
-    """ Don't use """
     pkg = import_module(args.module)
     model = pkg.LoRA_Sam(sam, 8).cuda()
 
