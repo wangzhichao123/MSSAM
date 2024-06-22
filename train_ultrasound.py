@@ -96,7 +96,7 @@ def train(train_loader, model, optimizer, epoch, args):
         low_res_gt = Variable(low_res_gt).cuda()
         
         # ---- forward ----
-        multimask_output = False  # 未使用
+        multimask_output = False  # don't use
         outputs = model(images, multimask_output, args.trainsize)
             
         mask = outputs['low_res_logits']    # iout = outputs['masks'] # 128  
@@ -109,13 +109,13 @@ def train(train_loader, model, optimizer, epoch, args):
         # ---- loss function ----
         loss_P1 = structure_loss(P1, low_res_gt)
         loss_P2 = structure_loss(P2, low_res_gt)
-        loss_P3 = structure_loss(P3, low_res_gt)
+        # loss_P3 = structure_loss(P3, low_res_gt)         # Impact on Performance
         
         loss = loss_P1 + loss_P2
         # ---- backward ----
         optimizer.zero_grad()
         loss.backward()
-        # clip_gradient(optimizer, args.clip)      # 梯度截断
+        # clip_gradient(optimizer, args.clip)      # gradient clipping
         optimizer.step()
         # ---- recording loss ----
         loss_P1_record.update(loss_P1.data, args.batchsize)
@@ -166,61 +166,42 @@ if __name__ == '__main__':
     ###############################################
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('--epoch', type=int,
-                        default=1000, help='epoch number')
+    parser.add_argument('--epoch', type=int, default=300, help='epoch number')
 
-    parser.add_argument('--lr', type=float,
-                        default=1e-4, help='learning rate')
+    parser.add_argument('--lr', type=float, default=1e-4, help='learning rate')
 
-    parser.add_argument('--optimizer', type=str,
-                        default='AdamW', help='choosing optimizer AdamW or SGD')
-
-    parser.add_argument('--augmentation',
-                        default=True, help='choose to do random flip rotation')
-
-    parser.add_argument('--batchsize', type=int,
-                        default=16, help='training batch size')
-
-    parser.add_argument('--trainsize', type=int,
-                        default=512, help='training dataset size')
-
-    parser.add_argument('--clip', type=float,
-                        default=0.5, help='gradient clipping margin')
-
-    parser.add_argument('--decay_rate', type=float,
-                        default=0.1, help='decay rate of learning rate')
-
-    parser.add_argument('--decay_epoch', type=int,
-                        default=50, help='every n epochs decay learning rate')
-
-    parser.add_argument('--train_path', type=str,
-                        default='./data/BUSI/train/',
-                        help='path to train dataset')
-
-    parser.add_argument('--test_path', type=str,
-                        default='./data/BUSI/test/',
-                        help='path to testing Kvasir dataset')
-
-    parser.add_argument('--train_save', type=str,
-                        default='./model_BUSI_pth/'+ model_name + '/')
+    parser.add_argument('--optimizer', type=str, default='AdamW', help='choosing optimizer AdamW or SGD')
     
-    parser.add_argument('--num_classes', type=int,
-                        default=1, help='output channel of network')
+    # If you want use the "box" prompt, please don't employ any enhanced strategies.
+    parser.add_argument('--augmentation', default=True, help='choose to do random flip rotation')
+
+    parser.add_argument('--batchsize', type=int, default=16, help='training batch size')
+
+    parser.add_argument('--trainsize', type=int, default=512, help='training dataset size')
+
+    parser.add_argument('--clip', type=float, default=0.5, help='gradient clipping margin')
+
+    parser.add_argument('--decay_rate', type=float, default=0.1, help='decay rate of learning rate')
+
+    parser.add_argument('--decay_epoch', type=int, default=50, help='every n epochs decay learning rate')
+
+    parser.add_argument('--train_path', type=str, default='./data/BUSI/train/', help='path to train dataset')
+
+    parser.add_argument('--test_path', type=str, default='./data/BUSI/test/', help='path to testing Kvasir dataset')
+
+    parser.add_argument('--train_save', type=str, default='./model_BUSI_pth/'+ model_name + '/')
     
-    parser.add_argument('--vit_name', type=str,
-                        default='vit_b', help='select one vit model')
+    parser.add_argument('--num_classes', type=int, default=1, help='output channel of network')
     
-    parser.add_argument('--module', type=str, 
-                        default='sam_lora_image_encoder')
+    parser.add_argument('--vit_name', type=str, default='vit_b', help='select one vit model')
     
-    parser.add_argument('--ckpt', type=str, 
-                        default='sam_vit_b_01ec64.pth', help='Pretrained checkpoint')
+    parser.add_argument('--module', type=str, default='sam_lora_image_encoder')
     
-    parser.add_argument('--warmup', 
-                        default=False, help='If activated, warp up the learning from a lower lr to the base_lr')
+    parser.add_argument('--ckpt', type=str, default='sam_vit_b_01ec64.pth', help='Pretrained checkpoint')
     
-    parser.add_argument('--warmup_period', type=int, default=20,
-                    help='Warp up iterations, only valid whrn warmup is activated')
+    parser.add_argument('--warmup', default=False, help='If activated, warp up the learning from a lower lr to the base_lr') # don't use
+    
+    parser.add_argument('--warmup_period', type=int, default=20, help='Warp up iterations, only valid whrn warmup is activated') # don't use
 
     args = parser.parse_args()
     logging.basicConfig(filename='train_BUSI_log.log',
@@ -236,9 +217,8 @@ if __name__ == '__main__':
     low_res = img_embedding_size * 4  # 32 * 4 = 128  32 * 7 = 224 
     
     net = sam.cuda()
-    """ Don't use """
     pkg = import_module(args.module)
-    model = pkg.LoRA_Sam(sam, 8).cuda()
+    model = pkg.LoRA_Sam(sam, 8).cuda()  # r = 8
 
     best = 0
 
