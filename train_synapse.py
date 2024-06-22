@@ -8,8 +8,6 @@ import numpy as np
 import torch
 import torch.backends.cudnn as cudnn
 
-from lib.networks import MaxViT, MaxViT4Out, MaxViT_CASCADE, MERIT_Parallel, MERIT_Cascaded
-
 from trainer import trainer_synapse
 
 from torchsummaryX import summary
@@ -18,8 +16,6 @@ from importlib import import_module
 from sam_lora_image_encoder import LoRA_Sam
 from segment_anything import sam_model_registry
 # from ptflops import get_model_complexity_info
-
-
 
 
 parser = argparse.ArgumentParser()
@@ -93,8 +89,8 @@ if __name__ == "__main__":
     args.list_dir = dataset_config[dataset_name]['list_dir']
     args.is_pretrain = True
 
-    args.exp = 'MERIT_Cascaded_Small_loss_MUTATION_w3_7_' + dataset_name + str(args.img_size)
-    snapshot_path = "model_ATT_Adapter_DiYDecoder_Conv_pth/{}/{}".format(args.exp, 'MERIT_Cascaded_Small_loss_MUTATION_w3_7')
+    args.exp = 'MSSAM_w3_7_' + dataset_name + str(args.img_size)
+    snapshot_path = "model_ATT_Adapter_DiYDecoder_Conv_pth/{}/{}".format(args.exp, 'MSSAM_w3_7')
     snapshot_path = snapshot_path + '_pretrain' if args.is_pretrain else snapshot_path
     snapshot_path = snapshot_path+'_'+str(args.max_iterations)[0:2]+'k' if args.max_iterations != 30000 else snapshot_path
     snapshot_path = snapshot_path + '_epo' +str(args.max_epochs) if args.max_epochs != 30 else snapshot_path
@@ -109,8 +105,6 @@ if __name__ == "__main__":
     if not os.path.exists(snapshot_path):
         os.makedirs(snapshot_path)
     
-    # net = MERIT_Cascaded(n_class=args.num_classes, img_size_s1=(args.img_size,args.img_size), img_size_s2=(224,224), model_scale='small', decoder_aggregation='additive', interpolation='bilinear')
-    
     sam, img_embedding_size = sam_model_registry[args.vit_name](image_size=args.img_size,
                                                                 num_classes=args.num_classes,
                                                                 checkpoint=args.ckpt, pixel_mean=[0, 0, 0],
@@ -118,13 +112,11 @@ if __name__ == "__main__":
     low_res = img_embedding_size * 4  # 32 * 4 = 128  32 * 7 = 224 
     
     net = sam.cuda()
-    """ Don't use """
     pkg = import_module(args.module)
-    net = pkg.LoRA_Sam(sam, 4).cuda()
+    net = pkg.LoRA_Sam(sam, 4).cuda()     # 基于此版本进行修改
 
     
-    print('Model %s created, param count: %d' %
-                     ('MERIT_Cascaded: ', sum([m.numel() for m in net.parameters()])))
+    print('Model %s created, param count: %d' % ('MSSAM: ', sum([m.numel() for m in net.parameters()])))
    
     # macs, params = get_model_complexity_info(net, (3, args.img_size, args.img_size), as_strings=True,
     #                                        print_per_layer_stat=False, verbose=True)
